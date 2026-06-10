@@ -7,6 +7,7 @@ on:
     tags: ["v*.*.*"]
 
 permissions:
+  actions: read # required by the CodeQL reusable workflow (reads workflow-run metadata)
   contents: read
   packages: write # push to GitHub Container Registry (ghcr.io)
   security-events: write # required by the CodeQL reusable workflow
