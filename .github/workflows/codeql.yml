@@ -7,7 +7,6 @@ on:
     branches: [main]
   schedule:
     - cron: "23 4 * * 1" # weekly, catches newly-published rules
-  workflow_call: # so the release workflow can require it before pushing images
 
 permissions:
   actions: read # CodeQL reads workflow-run metadata; an explicit permissions block sets unlisted scopes to none, so this must stay listed
@@ -25,7 +24,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: github/codeql-action/init@v4
         with:
-          language: ${{ matrix.language }}
+          languages: ${{ matrix.language }}
           # Broader query suite than the default; drop to "security-and-quality"
           # or remove for the lighter default set.
           queries: security-extended
