@@ -1,0 +1,67 @@
+name: CI
+
+# Runs on PRs and main, and is callable by the release workflow so the exact
+# same tests gate an image push.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r web/backend/requirements-dev.txt
+      # conftest points SCRIPTS_DIR at the repo root, so the real plot_training.py
+      # integration test runs here too.
+      - run: pytest
+        working-directory: web/backend
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/frontend/package-lock.json
+      - run: npm ci
+        working-directory: web/frontend
+      - run: npm test
+        working-directory: web/frontend
+      - run: npm run build
+        working-directory: web/frontend
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Bring the stack up in mock mode — no Intervals.icu credentials needed.
+      - run: MOCK_FETCH=1 docker compose up --build -d
+        working-directory: web
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/e2e/package-lock.json
+      - run: npm ci
+        working-directory: web/e2e
+      - run: npx playwright install --with-deps chromium
+        working-directory: web/e2e
+      - run: npx playwright test
+        working-directory: web/e2e
+        env:
+          E2E_BASE_URL: http://localhost:8080
+      - if: always()
+        run: docker compose logs && docker compose down
+        working-directory: web
