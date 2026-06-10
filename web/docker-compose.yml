@@ -31,8 +31,11 @@ services:
       context: ./frontend
     ports:
       - "${PORT:-8080}:8080"
+    # Wait until the backend is healthy so nginx can resolve "backend" at startup
+    # (a static upstream makes nginx refuse to boot if the name isn't resolvable yet).
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     read_only: true
     tmpfs:
       - /tmp
