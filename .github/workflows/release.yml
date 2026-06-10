@@ -7,21 +7,19 @@ on:
     tags: ["v*.*.*"]
 
 permissions:
-  actions: read # required by the CodeQL reusable workflow (reads workflow-run metadata)
   contents: read
   packages: write # push to GitHub Container Registry (ghcr.io)
-  security-events: write # required by the CodeQL reusable workflow
 
 jobs:
-  # Re-run the exact CI + CodeQL gates on the tagged commit. The image build
-  # below `needs` both, so nothing is published unless they succeed.
+  # Re-run the test suite on the tagged commit. CodeQL is NOT re-run here — it
+  # already gates every push to main and every PR (and re-scanning the same
+  # commit on a tag ref only adds a flaky duplicate SARIF upload). The image
+  # build below `needs` ci, so nothing is published unless the tests pass.
   ci:
     uses: ./.github/workflows/ci.yml
-  codeql:
-    uses: ./.github/workflows/codeql.yml
 
   build-push:
-    needs: [ci, codeql]
+    needs: [ci]
     runs-on: ubuntu-latest
     strategy:
       matrix:
