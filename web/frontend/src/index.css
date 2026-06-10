@@ -1,0 +1,64 @@
+/* Global theme. Adapts to the OS/browser light/dark preference instead of
+   leaving the page at the mercy of unstyled user-agent defaults. */
+:root {
+  color-scheme: light dark;
+  --bg: #ffffff;
+  --fg: #1a1a1a;
+  --muted: #555555;
+  --panel: #f3f5f8;
+  --border: #d9dee6;
+  --accent: #1565c0;
+  --accent-fg: #ffffff;
+  --error: #b00020;
+  --ok: #0a7d28;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1115;
+    --fg: #e6e9ef;
+    --muted: #9aa4b2;
+    --panel: #1a1d24;
+    --border: #2c313c;
+    --accent: #5b9dff;
+    --accent-fg: #0b1020;
+    --error: #ff6b6b;
+    --ok: #5fd07f;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+input,
+select,
+textarea {
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.4rem 0.5rem;
+  font: inherit;
+}
+
+button {
+  background: var(--accent);
+  color: var(--accent-fg);
+  border: 0;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  font: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+a {
+  color: var(--accent);
+}
