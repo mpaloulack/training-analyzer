@@ -87,8 +87,8 @@ export function App() {
 
       <details
         style={{
-          background: "#f3f5f8",
-          border: "1px solid #d9dee6",
+          background: "var(--panel)",
+          border: "1px solid var(--border)",
           borderRadius: 6,
           padding: "0.75rem 1rem",
           margin: "1rem 0",
@@ -101,7 +101,7 @@ export function App() {
             <li key={i}>{step}</li>
           ))}
         </ol>
-        <p style={{ margin: "0.75rem 0 0", color: "#555" }}>{t.helpPrivacy}</p>
+        <p style={{ margin: "0.75rem 0 0", color: "var(--muted)" }}>{t.helpPrivacy}</p>
       </details>
 
       <form onSubmit={onSubmit} aria-label="analysis form">
@@ -189,12 +189,12 @@ export function App() {
       )}
 
       {error && (
-        <p role="alert" style={{ color: "#b00020" }}>
+        <p role="alert" style={{ color: "var(--error)" }}>
           {error}
         </p>
       )}
       {status === "done" && (
-        <p role="status" style={{ color: "#0a7d28" }}>
+        <p role="status" style={{ color: "var(--ok)" }}>
           {t.doneMsg}
         </p>
       )}
