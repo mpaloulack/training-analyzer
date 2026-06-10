@@ -1,0 +1,93 @@
+# Dependabot configuration.
+# Covers every dependency surface in the repo: the analyzer's Python deps, the
+# web backend's Python deps, both npm projects (frontend + e2e), both
+# Dockerfiles, and GitHub Actions (for any future CI workflows).
+# Docs: https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+version: 2
+
+updates:
+  # ── Python: analyzer scripts (repo root requirements.txt) ──────────────
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "python"
+    groups:
+      python-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  # ── Python: web backend (FastAPI + analyzer runtime deps) ──────────────
+  - package-ecosystem: "pip"
+    directory: "/web/backend"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "python"
+      - "backend"
+    groups:
+      backend-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  # ── npm: React frontend ────────────────────────────────────────────────
+  - package-ecosystem: "npm"
+    directory: "/web/frontend"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "javascript"
+      - "frontend"
+    groups:
+      frontend-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  # ── npm: Playwright E2E suite ──────────────────────────────────────────
+  - package-ecosystem: "npm"
+    directory: "/web/e2e"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "javascript"
+      - "e2e"
+    groups:
+      e2e-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  # ── Docker: backend image ──────────────────────────────────────────────
+  - package-ecosystem: "docker"
+    directory: "/web/backend"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "docker"
+
+  # ── Docker: frontend image (nginx + node build stage) ──────────────────
+  - package-ecosystem: "docker"
+    directory: "/web/frontend"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "docker"
+
+  # ── GitHub Actions (active once workflows are added under .github/workflows) ─
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "ci"

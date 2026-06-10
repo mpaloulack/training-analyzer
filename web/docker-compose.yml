@@ -1,0 +1,45 @@
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: web/backend/Dockerfile
+    environment:
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      RUN_TIMEOUT: ${RUN_TIMEOUT:-240}
+      MAX_CONCURRENCY: ${MAX_CONCURRENCY:-2}
+      RATE_LIMIT: ${RATE_LIMIT:-5/hour}
+      MOCK_FETCH: ${MOCK_FETCH:-0}
+    # Trust X-Forwarded-For from the front proxy so rate limiting is per real client.
+    command: >
+      uvicorn app.main:app --host 0.0.0.0 --port 8000
+      --forwarded-allow-ips=*
+    # Not published — only the frontend proxy can reach it.
+    expose:
+      - "8000"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 1g
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "${PORT:-8080}:8080"
+    depends_on:
+      - backend
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/cache/nginx
+      - /var/run
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
