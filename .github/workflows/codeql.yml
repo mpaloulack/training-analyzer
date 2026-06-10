@@ -10,7 +10,7 @@ on:
   workflow_call: # so the release workflow can require it before pushing images
 
 permissions:
-  actions: read # read workflow run metadata (required on private repos)
+  actions: read # CodeQL reads workflow-run metadata; an explicit permissions block sets unlisted scopes to none, so this must stay listed
   contents: read
   security-events: write # upload results to the Security tab
 
