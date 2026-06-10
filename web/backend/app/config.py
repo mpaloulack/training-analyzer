@@ -15,7 +15,7 @@ def _int(name: str, default: int) -> int:
         return default
 
 
-# Directory holding the analyzer scripts (fetch_training_data.py, plot_training.py).
+# Directory holding the analyzer script (fetch_training_data.py).
 SCRIPTS_DIR = Path(os.environ.get("SCRIPTS_DIR", "/opt/scripts")).resolve()
 
 # Comma-separated list of allowed CORS origins. Empty disables cross-origin.
@@ -24,7 +24,7 @@ CORS_ORIGINS = [o.strip() for o in os.environ.get("CORS_ORIGINS", "").split(",")
 # Hard ceiling on how long the analyzer subprocesses may run (seconds).
 RUN_TIMEOUT = _int("RUN_TIMEOUT", 240)
 
-# Max number of analyses running at once (each spawns Python + matplotlib + network).
+# Max number of analyses running at once (each spawns a Python subprocess + network).
 MAX_CONCURRENCY = _int("MAX_CONCURRENCY", 2)
 
 # Per-IP rate limit for the run endpoint.

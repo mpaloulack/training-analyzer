@@ -50,8 +50,8 @@ describe("App form", () => {
   it("shows streamed progress and reports success", async () => {
     stubStream([
       { type: "progress", message: "1/3 Activités…" },
-      { type: "progress", message: "🎨 Generating graphs…" },
-      { type: "done", filename: "training-analysis.zip", zip_b64: btoa("zip") },
+      { type: "progress", message: "📦 Preparing your download…" },
+      { type: "done", filename: "training_data.json", file_b64: btoa("{}") },
     ]);
     render(<App />);
     await fillCreds();
@@ -59,7 +59,7 @@ describe("App form", () => {
 
     const log = await screen.findByLabelText("progress log");
     expect(log).toHaveTextContent("1/3 Activités");
-    expect(log).toHaveTextContent("Generating graphs");
+    expect(log).toHaveTextContent("Preparing your download");
     expect(await screen.findByRole("status")).toHaveTextContent(/done/i);
   });
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────
-# Script tout-en-un : installe, collecte, et génère les graphiques
+# Script tout-en-un : installe les dépendances et collecte les données
 # Usage : bash run.sh
 # ─────────────────────────────────────────────────────────────
 set -e
@@ -33,7 +33,7 @@ pip install -q -r requirements.txt
 # 4. Collecter les données
 # Ajoute FETCH_INTERVALS=1 dans .env (ou en variable d'env) pour télécharger les intervalles
 echo ""
-echo "📥 Collecte des données (Intervals.icu + Météo Canada)…"
+echo "📥 Collecte des données (Intervals.icu)…"
 INTERVALS_FLAG=""
 [ "${FETCH_INTERVALS:-0}" = "1" ] && INTERVALS_FLAG="--fetch-intervals"
 
@@ -45,14 +45,6 @@ python3 fetch_training_data.py \
     --out   training_data.json \
     ${INTERVALS_FLAG}
 
-# 5. Générer les graphiques
-echo ""
-echo "🎨 Génération des graphiques…"
-mkdir -p graphs
-python3 plot_training.py training_data.json --out graphs/
-
 echo ""
 echo "✅ Terminé !"
-echo "   📄 Données    → training_data.json"
-echo "   🖼  Graphiques → graphs/"
-ls graphs/*.png 2>/dev/null && echo "" || true
+echo "   📄 Données → training_data.json"

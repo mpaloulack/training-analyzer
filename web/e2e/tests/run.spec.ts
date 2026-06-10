@@ -2,9 +2,9 @@ import { test, expect } from "@playwright/test";
 
 // These run against the stack started with MOCK_FETCH=1, so no real
 // Intervals.icu credentials or network calls are needed — the journey
-// (fill form → submit → download a zip) is what we verify.
+// (fill form → submit → download the JSON) is what we verify.
 
-test("happy path: fill the form and download a zip", async ({ page }) => {
+test("happy path: fill the form and download the JSON", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Training Analyzer" })).toBeVisible();
 
@@ -18,7 +18,7 @@ test("happy path: fill the form and download a zip", async ({ page }) => {
   await expect(page.getByLabel("progress log")).toBeVisible();
 
   const download = await downloadPromise;
-  expect(download.suggestedFilename()).toBe("training-analysis.zip");
+  expect(download.suggestedFilename()).toBe("training_data.json");
   const path = await download.path();
   expect(path).toBeTruthy();
 

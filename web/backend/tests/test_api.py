@@ -1,8 +1,6 @@
 import base64
 import importlib
-import io
 import json
-import zipfile
 
 import pytest
 from fastapi.testclient import TestClient
@@ -34,7 +32,7 @@ def test_health(client):
     assert r.status_code == 200 and r.json()["mock"] is True
 
 
-def test_run_streams_progress_then_zip(client):
+def test_run_streams_progress_then_json(client):
     r = client.post("/api/run", json=VALID)
     assert r.status_code == 200
     assert r.headers["content-type"].startswith("application/x-ndjson")
@@ -43,9 +41,9 @@ def test_run_streams_progress_then_zip(client):
     assert any(e["type"] == "progress" for e in events)
 
     done = events[-1]
-    assert done["type"] == "done" and done["filename"] == "training-analysis.zip"
-    with zipfile.ZipFile(io.BytesIO(base64.b64decode(done["zip_b64"]))) as zf:
-        assert "training_data.json" in zf.namelist()
+    assert done["type"] == "done" and done["filename"] == "training_data.json"
+    payload = json.loads(base64.b64decode(done["file_b64"]))
+    assert "meta" in payload and "activities" in payload
 
 
 def test_run_rejects_invalid_payload(client):

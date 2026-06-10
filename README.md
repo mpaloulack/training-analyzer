@@ -1,30 +1,14 @@
 # Training Analyzer
 
-Analyse tes données d'entraînement course à pied en croisant trois sources :
+Analyzes your running training data from **[Intervals.icu](https://intervals.icu)** — activities, HR, paces, CTL/ATL, TRIMP, wellness (HRV).
 
-- **[Intervals.icu](https://intervals.icu)** — activités, FC, allures, CTL/ATL, TRIMP, wellness (HRV)
-- **[Enduraw](https://www.enduraw.com)** *(plugin Garmin)* — allure ajustée + coût vent/chaleur/dénivellé
-- **[Environnement Canada](https://climate.weather.gc.ca)** — température et rafales journalières (station McTavish, Montréal)
-
-Génère un fichier JSON réutilisable et 5 graphiques matplotlib.
-
----
-
-## Graphiques
-
-| Fichier | Contenu |
-|---------|---------|
-| `1_fcm_vs_allure.png` | %FCmax vs allure ajustée, coloré par température **et** par vent — sorties faciles (cercle), intervalles (diamant ◆), courses (étoile ★) |
-| `2_delta_allure_env.png` | Coût environnemental par séance (allure brute − ajustée), coloré par température |
-| `3_ctl_atl_forme.png` | CTL / ATL / Forme + HRV (VFC) sur la même timeline |
-| `4_bubble_seances.png` | Vue d'ensemble : date × allure, taille = TRIMP, couleur = %FCmax |
-| `5_zones_intervals.png` | Distribution zones FC par séance d'intervalles — avec l'allure moyenne par zone à l'intérieur de chaque bande |
+Produces a reusable `training_data.json` file.
 
 ---
 
 ## Installation
 
-### Prérequis
+### Requirements
 
 - Python 3.11+
 - pip
@@ -33,92 +17,86 @@ Génère un fichier JSON réutilisable et 5 graphiques matplotlib.
 pip install -r requirements.txt
 ```
 
-### Credentials Intervals.icu
+### Intervals.icu credentials
 
 ```bash
 cp .env.example .env
-# Ouvre .env et remplis :
-#   INTERVALS_ATHLETE_ID=ton_id      ← intervals.icu/settings → bas de page → API
-#   INTERVALS_API_KEY=ton_api_key
+# Open .env and fill in:
+#   INTERVALS_ATHLETE_ID=your_id      ← intervals.icu/settings → bottom → API
+#   INTERVALS_API_KEY=your_api_key
 ```
 
-L'ID athlète et la clé API se trouvent sur **https://intervals.icu/settings** (bas de page, section "API").
+Your athlete ID and API key are on **https://intervals.icu/settings** (bottom of the page, "API" section).
 
 ---
 
-## Utilisation
+## Usage
 
-### Tout-en-un (recommandé)
+### All-in-one (recommended)
 
 ```bash
 bash run.sh
 ```
 
-Le script charge `.env`, installe les dépendances, collecte les données et génère les graphiques.
+The script loads `.env`, installs dependencies, and collects the data.
 
-Pour inclure la décomposition par intervalles (graphique 5) :
+To include the per-interval breakdown:
 
 ```bash
 FETCH_INTERVALS=1 bash run.sh
 ```
 
-### Étape par étape
+### Step by step
 
 ```bash
 # Linux / Mac
-export INTERVALS_ATHLETE_ID="ton_id"
-export INTERVALS_API_KEY="ton_api_key"
+export INTERVALS_ATHLETE_ID="your_id"
+export INTERVALS_API_KEY="your_api_key"
 
 # Windows PowerShell
-$env:INTERVALS_ATHLETE_ID="ton_id"
-$env:INTERVALS_API_KEY="ton_api_key"
+$env:INTERVALS_ATHLETE_ID="your_id"
+$env:INTERVALS_API_KEY="your_api_key"
 
-# 1. Collecter les données (6 derniers mois)
+# 1. Collect the data (last 6 months)
 python3 fetch_training_data.py --start 2025-12-01 --end 2026-06-10
 
-# 2. Avec intervalles (plus lent — ~0.2 s/activité)
+# 2. With intervals (slower — ~0.2 s/activity)
 python3 fetch_training_data.py --start 2025-12-01 --end 2026-06-10 --fetch-intervals
-
-# 3. Générer les graphiques
-python3 plot_training.py training_data.json --out graphs/
 ```
 
-### Options `fetch_training_data.py`
+### `fetch_training_data.py` options
 
-| Option | Défaut | Description |
-|--------|--------|-------------|
-| `--start` | `2025-12-01` | Date début `YYYY-MM-DD` |
-| `--end` | aujourd'hui | Date fin |
-| `--out` | `training_data.json` | Fichier JSON de sortie |
-| `--fcm` | `196` | FC max (bpm) — mesurée en course |
-| `--lthr` | `181` | Seuil lactate (bpm) |
-| `--no-eccc` | — | Ignorer la météo Environnement Canada |
-| `--fetch-intervals` | — | Télécharger les intervalles (~30 s pour 130 séances) |
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--start` | `2025-12-01` | Start date `YYYY-MM-DD` |
+| `--end` | today | End date |
+| `--out` | `training_data.json` | Output JSON file |
+| `--fcm` | `196` | Max HR (bpm) — measured running |
+| `--lthr` | `181` | Lactate threshold HR (bpm) |
+| `--fetch-intervals` | — | Download interval data (~30 s for 130 sessions) |
 
-### Variables `.env` optionnelles
+### Optional `.env` variables
 
 ```dotenv
-INTERVALS_ATHLETE_ID=ton_id
-INTERVALS_API_KEY=ton_api_key
+INTERVALS_ATHLETE_ID=your_id
+INTERVALS_API_KEY=your_api_key
 
-# Physiologie (optionnel — utilise les défauts du script sinon)
+# Physiology (optional — falls back to the script defaults)
 FCM=196
 LTHR=181
 
-# Activer les intervalles via run.sh
+# Enable intervals via run.sh
 FETCH_INTERVALS=1
 ```
 
 ---
 
-## Structure du JSON
+## JSON structure
 
 ```jsonc
 {
   "meta": {
     "total_runs": 133,
-    "with_enduraw": 52,
-    "with_eccc_weather": 124,
     "with_intervals": 8,
     "with_hrv": 180,
     "fcm_bpm": 196,
@@ -131,7 +109,6 @@ FETCH_INTERVALS=1
       "name": "7*1400 3'45=>3'25",
       "distance_km": 18.36,
       "pace_raw_sec_per_km": 263,
-      "pace_adj_sec_per_km": 255,   // allure Enduraw (conditions standard)
       "hr_avg": 158,
       "hr_pct_fcm": 80.6,
       "hr_zone": 3,
@@ -139,14 +116,10 @@ FETCH_INTERVALS=1
       "atl": 58.4,
       "form": -6.3,
       "trimp": 189,
-      "enduraw": { "available": true, "temp_c": 21.0, "wind_kmh": 12.0, ... },
-      "eccc_weather": { "mean_temp_c": 20.5, "max_gust_kmh": 30 },
-      "env_temp_c": 21.0,
-      "env_wind_kmh": 12.0,
-      "interval_data": {            // null si --fetch-intervals non utilisé
+      "interval_data": {            // null unless --fetch-intervals is used
         "hr_avg": 170,
         "hr_pct_fcm": 86.7,
-        "pace_sec_per_km": 216,     // 3:36/km — portion intervalles seulement
+        "pace_sec_per_km": 216,     // 3:36/km — interval portion only
         "reps": 7,
         "label": "300s@170bpm92rpm",
         "zone_distribution": {
@@ -175,40 +148,30 @@ FETCH_INTERVALS=1
 
 ---
 
-## Zones FC
+## HR zones
 
-Basées sur le LTHR (seuil lactate) et la FCmax :
+Based on LTHR (lactate threshold) and max HR:
 
-| Zone | % LTHR | % FCmax (FCmax=196) | Caractéristique |
-|------|--------|---------------------|-----------------|
-| Z1 | < 70% | < 65% | Récupération active |
-| Z2 | 70–82% | 65–75.5% | Endurance fondamentale |
-| Z3 | 82–89% | 75.5–82% | Tempo / seuil aérobie |
-| Z4 | 89–97% | 82–89.3% | Seuil lactate |
+| Zone | % LTHR | % HRmax (HRmax=196) | Characteristic |
+|------|--------|---------------------|----------------|
+| Z1 | < 70% | < 65% | Active recovery |
+| Z2 | 70–82% | 65–75.5% | Base endurance |
+| Z3 | 82–89% | 75.5–82% | Tempo / aerobic threshold |
+| Z4 | 89–97% | 82–89.3% | Lactate threshold |
 | Z5 | > 97% | > 89.3% | VO2max / sprint |
 
 ---
 
-## Sources météo
-
-| Source | Priorité | Couverture | Données |
-|--------|----------|------------|---------|
-| **Enduraw** | 1 (plus précis) | ~40% des séances | Temp. + vent mesurés pendant la course |
-| **Environnement Canada** | 2 (fallback) | ~100% | Temp. moy. journalière + rafale max (station McTavish, Montréal) |
-
----
-
-## Fichiers
+## Files
 
 ```
 training-analyzer/
-├── fetch_training_data.py   collecte → training_data.json
-├── plot_training.py         graphiques depuis le JSON
-├── run.sh                   script tout-en-un
-├── requirements.txt         dépendances Python
-├── .env.example             template credentials (ne pas committer .env)
-├── debug_intervals.py       diagnostic API intervals (développement)
-└── README.md                ce fichier
+├── fetch_training_data.py   collect → training_data.json
+├── run.sh                   all-in-one script
+├── requirements.txt         Python dependencies
+├── .env.example             credentials template (do not commit .env)
+├── debug_intervals.py       intervals API diagnostics (development)
+└── README.md                this file
 ```
 
-Les fichiers `training_data.json`, `graphs/` et `.env` sont dans `.gitignore` — ils contiennent des données personnelles.
+`training_data.json` and `.env` are in `.gitignore` — they contain personal data.

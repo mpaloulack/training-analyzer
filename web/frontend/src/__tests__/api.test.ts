@@ -31,15 +31,15 @@ function streamResponse(events: object[], opts: { ok?: boolean; status?: number 
 afterEach(() => vi.restoreAllMocks());
 
 describe("runAnalysis", () => {
-  it("posts params, reports progress, and returns the zip", async () => {
-    const zip_b64 = btoa("zipbytes");
+  it("posts params, reports progress, and returns the JSON file", async () => {
+    const file_b64 = btoa('{"meta":{}}');
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(
         streamResponse([
           { type: "progress", message: "1/3 Activités…" },
-          { type: "progress", message: "🎨 Generating graphs…" },
-          { type: "done", filename: "training-analysis.zip", zip_b64 },
+          { type: "progress", message: "📦 Preparing your download…" },
+          { type: "done", filename: "training_data.json", file_b64 },
         ]),
       ),
     );
@@ -47,10 +47,10 @@ describe("runAnalysis", () => {
     const seen: string[] = [];
     const result = await runAnalysis(PARAMS, { onProgress: (m) => seen.push(m) });
 
-    expect(seen).toEqual(["1/3 Activités…", "🎨 Generating graphs…"]);
-    expect(result.filename).toBe("training-analysis.zip");
-    expect(result.blob.type).toBe("application/zip");
-    expect(result.blob.size).toBe("zipbytes".length); // decoded from base64
+    expect(seen).toEqual(["1/3 Activités…", "📦 Preparing your download…"]);
+    expect(result.filename).toBe("training_data.json");
+    expect(result.blob.type).toBe("application/json");
+    expect(result.blob.size).toBe('{"meta":{}}'.length); // decoded from base64
 
     const [url, opts] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(url).toBe("/api/run");

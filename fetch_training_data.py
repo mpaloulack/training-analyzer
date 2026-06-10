@@ -2,10 +2,8 @@
 """
 Collecte des données d'entraînement course à pied → training_data.json
 
-Sources :
+Source :
   - Intervals.icu API  : activités, FC, allures, CTL/ATL, TRIMP, wellness
-  - Enduraw            : allure ajustée + coût vent/chaleur (dans la description Garmin)
-  - Environnement Canada (McTavish 10761) : température moyenne + rafale journalière
 
 Usage :
   export INTERVALS_ATHLETE_ID="882231"
@@ -18,9 +16,8 @@ Usage :
 Credentials Intervals.icu → https://intervals.icu/settings  (bas de page, section API)
 """
 
-import os, sys, re, json, csv, time, argparse
+import os, sys, json, time, argparse
 from datetime import date, datetime
-from base64 import b64encode
 
 try:
     import requests
@@ -30,18 +27,9 @@ except ImportError:
 # ─────────────────────────────────────────────
 # CONFIG
 # ─────────────────────────────────────────────
-ECCC_STATION_ID  = "10761"   # McTavish, Montréal — données quotidiennes gratuites
 FCM_DEFAULT      = 196       # FC max (bpm) — mesuré en course
 LTHR_DEFAULT     = 181       # Seuil lactate (bpm)
 ACTIVITY_TYPES   = ("Run", "VirtualRun")
-
-# ─────────────────────────────────────────────
-# UNICODE bold digits → ASCII  (texte Enduraw)
-# ─────────────────────────────────────────────
-_BOLD = {chr(0x1D7EC + i): str(i) for i in range(10)}
-
-def _unbold(s: str) -> str:
-    return "".join(_BOLD.get(c, c) for c in s)
 
 # ─────────────────────────────────────────────
 # INTERVALS.ICU  API
@@ -179,92 +167,6 @@ def extract_interval_group(groups: list, intervals: list,
 
 
 # ─────────────────────────────────────────────
-# ENDURAW  (description de l'activité Garmin)
-# ─────────────────────────────────────────────
-def parse_enduraw(description: str | None) -> dict:
-    if not description:
-        return {}
-    desc = _unbold(description)
-    out  = {}
-
-    m = re.search(r"Adjusted Pace:\s*(\d+):(\d+)/km", desc)
-    if m:
-        out["adj_pace_sec"] = int(m.group(1)) * 60 + int(m.group(2))
-
-    m = re.search(r"Heat \(([\d.]+)°C\) cost you\s*(\d+)'(\d+)\"", desc)
-    if m:
-        out["temp_c"]            = float(m.group(1))
-        out["heat_cost_sec_per_km"] = int(m.group(2)) * 60 + int(m.group(3))
-
-    m = re.search(r"Cold \((-?[\d.]+)°C\) cost you\s*(\d+)'(\d+)\"", desc)
-    if m:
-        out["temp_c"]            = float(m.group(1))
-        out["heat_cost_sec_per_km"] = -(int(m.group(2)) * 60 + int(m.group(3)))
-
-    m = re.search(r"Wind \(([\d.]+)km/h\) cost you\s*(\d+)'(\d+)\"", desc)
-    if m:
-        out["wind_kmh"]           = float(m.group(1))
-        out["wind_cost_sec_per_km"] = int(m.group(2)) * 60 + int(m.group(3))
-
-    m = re.search(r"Wind \(([\d.]+)km/h\) benefit\s*(\d+)'(\d+)\"", desc)
-    if m:
-        out["wind_kmh"]           = float(m.group(1))
-        out["wind_cost_sec_per_km"] = -(int(m.group(2)) * 60 + int(m.group(3)))
-
-    m = re.search(r"Elevation.*?cost you\s*(\d+)'(\d+)\"", desc)
-    if m:
-        out["elev_cost_sec_per_km"] = int(m.group(1)) * 60 + int(m.group(2))
-
-    return out
-
-# ─────────────────────────────────────────────
-# ENVIRONNEMENT CANADA  (données gratuites)
-# ─────────────────────────────────────────────
-def fetch_eccc_month(station_id: str, year: int, month: int) -> dict[str, dict]:
-    url = (
-        "https://climate.weather.gc.ca/climate_data/bulk_data_e.html"
-        f"?format=csv&stationID={station_id}"
-        f"&Year={year}&Month={month}&Day=1&timeframe=2&submit=Download+Data"
-    )
-    print(f"  → ECCC {year}-{month:02d} : {url}")
-    try:
-        r = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=30)
-        r.raise_for_status()
-        raw = r.text
-    except Exception as e:
-        print(f"    ⚠ ECCC erreur : {e}")
-        return {}
-
-    lines = raw.splitlines()
-    header_idx = next((i for i, l in enumerate(lines) if "Date/Time" in l), None)
-    if header_idx is None:
-        return {}
-
-    result = {}
-    for row in csv.DictReader(lines[header_idx:]):
-        d = row.get("Date/Time", "").strip()
-        if not re.match(r"\d{4}-\d{2}-\d{2}", d):
-            continue
-        try:    mean_t = float(row["Mean Temp (°C)"]) if row.get("Mean Temp (°C)", "").strip() else None
-        except: mean_t = None
-        try:    gust = float(row["Spd of Max Gust (km/h)"]) if row.get("Spd of Max Gust (km/h)", "").strip() else None
-        except: gust = None
-        result[d] = {"mean_temp_c": mean_t, "max_gust_kmh": gust}
-    return result
-
-
-def fetch_eccc_range(station_id: str, start: str, end: str) -> dict[str, dict]:
-    d_start = date.fromisoformat(start)
-    d_end   = date.fromisoformat(end)
-    weather = {}
-    cur     = date(d_start.year, d_start.month, 1)
-    while cur <= d_end:
-        weather.update(fetch_eccc_month(station_id, cur.year, cur.month))
-        time.sleep(0.4)
-        cur = date(cur.year + (cur.month == 12), (cur.month % 12) + 1, 1)
-    return weather
-
-# ─────────────────────────────────────────────
 # ZONES FC
 # ─────────────────────────────────────────────
 def hr_zone(hr, lthr: int = LTHR_DEFAULT) -> int | None:
@@ -279,11 +181,10 @@ def hr_zone(hr, lthr: int = LTHR_DEFAULT) -> int | None:
 # ─────────────────────────────────────────────
 # ASSEMBLAGE  d'un record JSON par activité
 # ─────────────────────────────────────────────
-def build_record(act: dict, wellness: dict, weather: dict,
+def build_record(act: dict, wellness: dict,
                  fcm: int, lthr: int, interval_data: dict = None) -> dict:
     act_date = (act.get("start_date_local") or act.get("start_date", ""))[:10]
     w  = wellness.get(act_date, {})
-    wx = weather.get(act_date, {})
 
     moving_s = act.get("moving_time") or act.get("elapsed_time") or 0
     dist_m   = act.get("distance") or 0
@@ -293,24 +194,6 @@ def build_record(act: dict, wellness: dict, weather: dict,
     hr_avg  = act.get("average_heartrate") or act.get("avg_hr")
     hr_max  = act.get("max_heartrate")     or act.get("max_hr")
     hr_pct  = round(hr_avg / fcm * 100, 1) if hr_avg else None
-
-    enduraw = parse_enduraw(act.get("description") or "")
-    adj_pace = enduraw.get("adj_pace_sec") or pace_sec
-
-    # Meilleure estimation température et vent
-    temp_eff = enduraw.get("temp_c")
-    if temp_eff is None and wx.get("mean_temp_c") is not None:
-        temp_eff = wx["mean_temp_c"]
-
-    wind_eff = enduraw.get("wind_kmh")
-    if wind_eff is None and wx.get("max_gust_kmh"):
-        wind_eff = round(wx["max_gust_kmh"] / 2, 1)  # rafale ÷ 2 ≈ vent moyen
-
-    # Coût environnemental total Enduraw (s/km)
-    h  = enduraw.get("heat_cost_sec_per_km") or 0
-    wc = enduraw.get("wind_cost_sec_per_km") or 0
-    el = enduraw.get("elev_cost_sec_per_km") or 0
-    env_cost_total = (h + wc + el) if any([h, wc, el]) else None
 
     # CTL / ATL depuis wellness si absent de l'activité
     ctl = act.get("ctl") or w.get("ctl")
@@ -329,7 +212,6 @@ def build_record(act: dict, wellness: dict, weather: dict,
         "weight_kg":    act.get("athlete_weight"),
 
         "pace_raw_sec_per_km": pace_sec,
-        "pace_adj_sec_per_km": adj_pace,
         "speed_ms":            round(act.get("average_speed", 0) or 0, 3) or None,
 
         "hr_avg":      int(hr_avg) if hr_avg else None,
@@ -351,30 +233,6 @@ def build_record(act: dict, wellness: dict, weather: dict,
         "sleep_h":   round(w["sleepSecs"] / 3600, 2) if w.get("sleepSecs") else w.get("sleep"),
         "vo2max":    w.get("vo2max"),
 
-        "enduraw": {
-            "available":              bool(enduraw),
-            "adj_pace_sec_per_km":    enduraw.get("adj_pace_sec"),
-            "temp_c":                 enduraw.get("temp_c"),
-            "heat_cost_sec_per_km":   enduraw.get("heat_cost_sec_per_km"),
-            "wind_kmh":               enduraw.get("wind_kmh"),
-            "wind_cost_sec_per_km":   enduraw.get("wind_cost_sec_per_km"),
-            "elev_cost_sec_per_km":   enduraw.get("elev_cost_sec_per_km"),
-            "env_cost_total_sec_per_km": env_cost_total,
-        },
-
-        "eccc_weather": {
-            "mean_temp_c":  wx.get("mean_temp_c"),
-            "max_gust_kmh": wx.get("max_gust_kmh"),
-            "station_id":   ECCC_STATION_ID,
-            "station_name": "McTavish (Montréal)",
-        },
-
-        # Colonnes synthèse pour graphiques
-        "env_temp_c":   temp_eff,
-        "env_wind_kmh": wind_eff,
-        "source_env":   ("enduraw" if enduraw.get("temp_c") is not None
-                         else ("eccc" if wx.get("mean_temp_c") is not None else None)),
-
         # Groupe d'intervalles de qualité (None si sortie facile ou --fetch-intervals non utilisé)
         "interval_data": interval_data,
     }
@@ -389,7 +247,6 @@ def main():
     p.add_argument("--out",      default="training_data.json")
     p.add_argument("--fcm",      type=int, default=FCM_DEFAULT)
     p.add_argument("--lthr",     type=int, default=LTHR_DEFAULT)
-    p.add_argument("--no-eccc",  action="store_true", help="Ignorer la météo Canada")
     p.add_argument("--fetch-intervals", action="store_true",
                    help="Télécharger les données d'intervalles (~0.2s/activité)")
     args = p.parse_args()
@@ -421,18 +278,10 @@ def main():
     wellness = fetch_wellness(session, athlete_id, args.start, args.end)
     print(f"     {len(wellness)} jours")
 
-    weather = {}
-    if not args.no_eccc:
-        print("\n3/4  Météo Environnement Canada…")
-        weather = fetch_eccc_range(ECCC_STATION_ID, args.start, args.end)
-        print(f"     {len(weather)} jours")
-    else:
-        print("\n3/4  Météo EC ignorée (--no-eccc)")
-
     interval_map = {}
     if args.fetch_intervals:
         n_total = len(runs)
-        print(f"\n4/4  Intervalles ({n_total} activités)…")
+        print(f"\n3/3  Intervalles ({n_total} activités)…")
         for i, act in enumerate(runs, 1):
             act_id = act.get("id")
             if act_id:
@@ -448,15 +297,13 @@ def main():
         n_iv = sum(1 for v in interval_map.values() if v is not None)
         print(f"     {n_iv} workouts avec groupe d'intervalles identifié")
     else:
-        print("\n4/4  Intervalles ignorés (ajoute --fetch-intervals pour les inclure)")
+        print("\n3/3  Intervalles ignorés (ajoute --fetch-intervals pour les inclure)")
 
     print("\n🔧 Assemblage…")
-    records = [build_record(a, wellness, weather, args.fcm, args.lthr,
+    records = [build_record(a, wellness, args.fcm, args.lthr,
                             interval_map.get(a.get("id")))
                for a in sorted(runs, key=lambda a: (a.get("start_date_local") or a.get("start_date", "")))]
 
-    n_enduraw   = sum(1 for r in records if r["enduraw"]["available"])
-    n_eccc      = sum(1 for r in records if r["eccc_weather"]["mean_temp_c"] is not None)
     n_intervals = sum(1 for r in records if r.get("interval_data"))
 
     # Timeline wellness : une entrée par jour avec données HRV / FC repos / sommeil
@@ -487,13 +334,10 @@ def main():
             "period_start":      args.start,
             "period_end":        args.end,
             "total_runs":        len(records),
-            "with_enduraw":      n_enduraw,
-            "with_eccc_weather": n_eccc,
             "with_intervals":    n_intervals,
             "with_hrv":          n_hrv,
             "fcm_bpm":           args.fcm,
             "lthr_bpm":          args.lthr,
-            "eccc_station_id":   ECCC_STATION_ID,
         },
         "activities":        records,
         "wellness_timeline": wellness_timeline,
@@ -503,7 +347,7 @@ def main():
         json.dump(output, f, ensure_ascii=False, indent=2, default=str)
 
     print(f"\n✅ {args.out}")
-    print(f"   {len(records)} runs  |  {n_enduraw} Enduraw  |  {n_eccc} ECCC météo  |  {n_intervals} intervalles  |  {n_hrv} jours HRV")
+    print(f"   {len(records)} runs  |  {n_intervals} intervalles  |  {n_hrv} jours HRV")
 
 
 if __name__ == "__main__":
