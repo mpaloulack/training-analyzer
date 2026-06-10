@@ -1,7 +1,12 @@
 # Dependabot configuration.
 # Covers every dependency surface in the repo: the analyzer's Python deps, the
 # web backend's Python deps, both npm projects (frontend + e2e), both
-# Dockerfiles, and GitHub Actions (for any future CI workflows).
+# Dockerfiles, and GitHub Actions.
+#
+# Each ecosystem/directory uses a single catch-all group (no update-types
+# filter) so ALL updates for that directory — including majors — arrive in ONE
+# pull request. This keeps multiple bumps from racing on the same manifest /
+# lockfile and conflicting with each other.
 # Docs: https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
 version: 2
 
@@ -16,9 +21,8 @@ updates:
       - "dependencies"
       - "python"
     groups:
-      python-minor-patch:
+      analyzer-python:
         patterns: ["*"]
-        update-types: ["minor", "patch"]
 
   # ── Python: web backend (FastAPI + analyzer runtime deps) ──────────────
   - package-ecosystem: "pip"
@@ -31,9 +35,8 @@ updates:
       - "python"
       - "backend"
     groups:
-      backend-minor-patch:
+      backend-python:
         patterns: ["*"]
-        update-types: ["minor", "patch"]
 
   # ── npm: React frontend ────────────────────────────────────────────────
   - package-ecosystem: "npm"
@@ -46,9 +49,8 @@ updates:
       - "javascript"
       - "frontend"
     groups:
-      frontend-minor-patch:
+      frontend-npm:
         patterns: ["*"]
-        update-types: ["minor", "patch"]
 
   # ── npm: Playwright E2E suite ──────────────────────────────────────────
   - package-ecosystem: "npm"
@@ -61,9 +63,8 @@ updates:
       - "javascript"
       - "e2e"
     groups:
-      e2e-minor-patch:
+      e2e-npm:
         patterns: ["*"]
-        update-types: ["minor", "patch"]
 
   # ── Docker: backend image ──────────────────────────────────────────────
   - package-ecosystem: "docker"
@@ -73,6 +74,9 @@ updates:
     labels:
       - "dependencies"
       - "docker"
+    groups:
+      backend-docker:
+        patterns: ["*"]
 
   # ── Docker: frontend image (nginx + node build stage) ──────────────────
   - package-ecosystem: "docker"
@@ -82,8 +86,11 @@ updates:
     labels:
       - "dependencies"
       - "docker"
+    groups:
+      frontend-docker:
+        patterns: ["*"]
 
-  # ── GitHub Actions (active once workflows are added under .github/workflows) ─
+  # ── GitHub Actions ─────────────────────────────────────────────────────
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
@@ -91,3 +98,6 @@ updates:
     labels:
       - "dependencies"
       - "ci"
+    groups:
+      github-actions:
+        patterns: ["*"]
