@@ -1,0 +1,22 @@
+# Credentials — ne jamais committer
+.env
+
+# Données personnelles générées
+training_data.json
+graphs/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+
+# Divers
+.DS_Store
+*.swp
+*.bak
