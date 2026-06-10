@@ -71,10 +71,10 @@ def _ndjson(event: dict) -> str:
 
 
 def _stream_run(params: RunParams) -> Iterator[str]:
-    """Yield NDJSON progress events, then a final event carrying the zip.
+    """Yield NDJSON progress events, then a final event carrying the JSON file.
 
     Stateless: a fresh temp dir per request, always removed; the API key never
-    leaves the subprocess env; the zip is base64'd into the closing event so
+    leaves the subprocess env; the output is base64'd into the closing event so
     nothing is held server-side after the response ends.
     """
     if not _semaphore.acquire(blocking=False):
@@ -86,14 +86,14 @@ def _stream_run(params: RunParams) -> Iterator[str]:
         try:
             for event in runner.run_streaming(params, workdir):
                 yield _ndjson(event)
-            data = packaging.build_zip(workdir)
+            data = packaging.read_output(workdir)
         except runner.RunError as exc:
             yield _ndjson({"type": "error", "message": str(exc)})
             return
         yield _ndjson({
             "type": "done",
-            "filename": "training-analysis.zip",
-            "zip_b64": base64.b64encode(data).decode("ascii"),
+            "filename": "training_data.json",
+            "file_b64": base64.b64encode(data).decode("ascii"),
         })
     finally:
         shutil.rmtree(workdir, ignore_errors=True)

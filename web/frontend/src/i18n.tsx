@@ -54,7 +54,7 @@ const settingsLink = "https://intervals.icu/settings";
 export const translations: Record<Lang, Strings> = {
   en: {
     intro:
-      "Enter your Intervals.icu credentials to generate your training graphs. Nothing is stored — your key is used only for this run and discarded.",
+      "Enter your Intervals.icu credentials to download your training data (JSON). Nothing is stored — your key is used only for this run and discarded.",
     helpSummary: "Where do I find my Athlete ID and API key?",
     helpSteps: [
       <>
@@ -96,7 +96,7 @@ export const translations: Record<Lang, Strings> = {
   },
   fr: {
     intro:
-      "Entrez vos identifiants Intervals.icu pour générer vos graphiques d’entraînement. Rien n’est enregistré — votre clé n’est utilisée que pour cette analyse, puis supprimée.",
+      "Entrez vos identifiants Intervals.icu pour télécharger vos données d’entraînement (JSON). Rien n’est enregistré — votre clé n’est utilisée que pour cette analyse, puis supprimée.",
     helpSummary: "Où trouver mon Athlete ID et ma clé API ?",
     helpSteps: [
       <>

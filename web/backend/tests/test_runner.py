@@ -34,22 +34,20 @@ def test_fetch_env_is_minimal():
     # No inherited environment that could leak host secrets into the subprocess.
     assert set(env) == {
         "INTERVALS_ATHLETE_ID", "INTERVALS_API_KEY",
-        "MPLBACKEND", "PATH", "HOME", "PYTHONUNBUFFERED",
+        "PATH", "HOME", "PYTHONUNBUFFERED",
     }
     # Live streaming depends on unbuffered subprocess output.
     assert env["PYTHONUNBUFFERED"] == "1"
 
 
-def test_mock_run_writes_stub_outputs(tmp_path, monkeypatch):
+def test_mock_run_writes_json_output(tmp_path, monkeypatch):
     monkeypatch.setattr(runner.config, "MOCK_FETCH", True)
     runner.run(PARAMS, tmp_path)
     assert (tmp_path / "training_data.json").is_file()
-    assert (tmp_path / "graphs" / "1_fcm_vs_allure.png").is_file()
 
 
-def test_mock_streaming_yields_events_and_outputs(tmp_path, monkeypatch):
+def test_mock_streaming_yields_events_and_output(tmp_path, monkeypatch):
     monkeypatch.setattr(runner.config, "MOCK_FETCH", True)
     events = list(runner.run_streaming(PARAMS, tmp_path))
     assert events and all(e["type"] == "progress" for e in events)
     assert (tmp_path / "training_data.json").is_file()
-    assert (tmp_path / "graphs" / "1_fcm_vs_allure.png").is_file()

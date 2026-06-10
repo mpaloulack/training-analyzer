@@ -15,7 +15,7 @@ export interface RunCallbacks {
 interface DoneEvent {
   type: "done";
   filename: string;
-  zip_b64: string;
+  file_b64: string;
 }
 interface ProgressEvent {
   type: "progress";
@@ -29,12 +29,12 @@ type RunEvent = DoneEvent | ProgressEvent | ErrorEvent;
 
 function b64ToBlob(b64: string): Blob {
   const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-  return new Blob([bytes], { type: "application/zip" });
+  return new Blob([bytes], { type: "application/json" });
 }
 
 /**
  * POST the params and consume the NDJSON progress stream. Progress lines are
- * delivered via `onProgress`; resolves with the result zip Blob and filename.
+ * delivered via `onProgress`; resolves with the result file Blob and filename.
  */
 export async function runAnalysis(
   params: RunParams,
@@ -74,7 +74,7 @@ export async function runAnalysis(
       const event = JSON.parse(line) as RunEvent;
       if (event.type === "progress") onProgress(event.message);
       else if (event.type === "error") throw new Error(event.message);
-      else if (event.type === "done") result = { blob: b64ToBlob(event.zip_b64), filename: event.filename };
+      else if (event.type === "done") result = { blob: b64ToBlob(event.file_b64), filename: event.filename };
     }
     if (done) break;
   }
