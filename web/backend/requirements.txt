@@ -1,6 +1,6 @@
 fastapi==0.143.0
 uvicorn[standard]==0.54.0
 slowapi==0.1.10
-pydantic==2.14.0
+pydantic==2.14.1
 # Transitive (starlette/httpx); floor set for CVE-2026-63374, fixed in 4.14.2.
-anyio>=4.14.2
+anyio>=4.15.1
